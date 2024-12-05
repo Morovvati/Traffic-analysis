@@ -1,45 +1,47 @@
-import pandas as pd
-import numpy as np
+import requests
 from geopy.distance import geodesic
 
-# Load traffic data from CSV file
-data = pd.read_csv('traffic_data.csv')
+# Google Maps API Key (شما باید این کلید را از Google Cloud Console دریافت کنید)
+API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'
 
-# Preprocessing (remove missing values)
-data.dropna(subset=['latitude', 'longitude', 'speed'], inplace=True)
-
-# Function to check traffic at a given point
-def check_traffic(latitude, longitude, threshold=20, radius=0.5):
+# Function to get traffic data from Google Maps Traffic API
+def get_traffic_data(latitude, longitude):
     """
-    latitude: Latitude of the point to check
-    longitude: Longitude of the point to check
-    threshold: Speed threshold (traffic is heavy if below this value)
-    radius: Search radius in kilometers
+    دریافت وضعیت ترافیک از Google Maps Traffic API بر اساس مختصات
+    """
+    url = f"https://maps.googleapis.com/maps/api/traffic/traffic.json?latlng={latitude},{longitude}&key={API_KEY}"
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        traffic_data = response.json()
+        # Assuming you have an API returning the traffic data status (example)
+        if traffic_data["status"] == "heavy":
+            return True
+        else:
+            return False
+    else:
+        print("Failed to retrieve traffic data.")
+        return False
+
+# Function to check if there is traffic at a given point
+def check_traffic(latitude, longitude, radius=0.5):
+    """
+    latitude: عرض جغرافیایی نقطه
+    longitude: طول جغرافیایی نقطه
+    radius: شعاع جستجو در کیلومتر
     """
     point = (latitude, longitude)
-    speeds = []
     
-    for _, row in data.iterrows():
-        traffic_point = (row['latitude'], row['longitude'])
-        distance = geodesic(point, traffic_point).km
-        
-        if distance <= radius:  # Check points within the radius
-            speeds.append(row['speed'])
-    
-    if speeds:
-        avg_speed = np.mean(speeds)
-        print(f"Average speed in this area: {avg_speed:.2f} km/h")
-        if avg_speed < threshold:
-            return "Heavy traffic."
-        else:
-            return "Traffic is smooth."
+    # فرض بر این است که نقاط ترافیک آنلاین از یک API دریافت می‌شوند
+    if get_traffic_data(latitude, longitude):
+        return "Heavy traffic detected in this area."
     else:
-        return "No data available within the specified radius."
+        return "No traffic detected in this area."
 
-# Get user input
+# ورودی مختصات از کاربر
 latitude = float(input("Enter latitude: "))
 longitude = float(input("Enter longitude: "))
 
-# Check traffic status
+# بررسی وضعیت ترافیک
 result = check_traffic(latitude, longitude)
 print(result)
